@@ -38,6 +38,8 @@ class Map
     std::list<Frame::Ptr> _local_keyframes;
 
     int _local_keyframes_num = 50; 
+
+
 };
 
 #endif

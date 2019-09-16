@@ -14,10 +14,10 @@ public:
     //Sophus::Vector6d _se3_pose;
 
     Camera();
-    Camera(int id, double fx, double fy, double cx, double cy, double fb);
+    Camera(int id, float fx, float fy, float cx, float cy, float fb);
     
     int _id;
-    double _fx, _fy, _cx, _cy, _fb;
+    float _fx, _fy, _cx, _cy, _fb;
     
 
     Eigen::Matrix3f K();

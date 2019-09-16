@@ -14,8 +14,6 @@ Frame::Frame(long id, cv::Mat left, cv::Mat right)
 
     _gird_width_inv=  FRAME_GRID_COLS/(_max_x-_min_x);
     _grid_height_inv = FRAME_GRID_ROWS/(_max_y-_min_y);
-
-
 }
 
 void Frame::AssignKeypointsToGrid()

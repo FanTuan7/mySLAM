@@ -1,49 +1,41 @@
 #include "dataset.h"
 
 //设定文件路径,读取相机参数
-Dataset::Dataset(const std::string &dataset_path)
+Dataset::Dataset(const std::string &yaml_file_path)
 {
-    _left_images_path_start = dataset_path + "image_0/";
-    _right_images_path_start = dataset_path + "image_1/";
-    _image_path_end = ".png";
-    _times_file_path = dataset_path + "times.txt";
-    _camera_file_path = dataset_path + "calib.txt";
+    _config = YAML::LoadFile(yaml_file_path);
 
-    //读取相机数据
-    std::ifstream fCalib;
-    fCalib.open(_camera_file_path.c_str());
-    if (!fCalib.is_open())
+    if (!_config["datafile"])
     {
-        std::cerr << "can't open calib.txt " << std::endl;
+        std::cerr << "can't load yaml file, please check the path" << endl;
         return;
     }
 
-    //四个相机
-    for (int i = 0; i < 4; i++)
-    {
-        char camera_name[3];
-        for (int j = 0; j < 3; j++)
-        {
-            fCalib >> camera_name[j];
-        }
+    std::string dataset_path = _config["datafile"].as<std::string>();
+    _left_images_path_start = dataset_path + "image_0/";
+    _right_images_path_start = dataset_path + "image_1/";
+    _image_path_end = ".png";
 
-        double projection_matrix[12];
-        for (int j = 0; j < 12; j++)
-        {
-            fCalib >> projection_matrix[j];
-        }
+    //读取相机参数
+    int id = 0;
+    float fx = _config["fx"].as<float>();
+    float fy = _config["fy"].as<float>();
+    float cx = _config["cx"].as<float>();
+    float cy = _config["cy"].as<float>();
+    float fb = _config["fb"].as<float>();
+    _camera = Camera::ConstPtr(new Camera{id, fx, fy, cx, cy, fb});
 
-        int id = (int)camera_name[1] - '0';
-        double fx = projection_matrix[0];
-        double fy = projection_matrix[5];
-        double cx = projection_matrix[2];
-        double cy = projection_matrix[6];
-        double fb = abs(projection_matrix[3]);
+    _features = _config["features"].as<int>();
+    _scaleFactor = _config["scaleFactor"].as<float>();
+    _levels = _config["levels"].as<int>();
+    _iniThFAST = _config["iniThFAST"].as<int>();
+    _minThFAST = _config["minThFAST"].as<int>();
 
-        Camera::Ptr new_camera = Camera::Ptr(new Camera{id,fx,fy,cx,cy,fb});
+    _KF_DoWrate = _config["KF_DoWrate"].as<float>();
+    _KF_mindistance = _config["KF_mindistance"].as<float>();
 
-        _cameras.push_back(new_camera);
-    }
+
+    vocab_path = _config["Vocabulary"].as<std::string>();
 }
 
 Frame::Ptr Dataset::NextFrame()
@@ -59,29 +51,30 @@ Frame::Ptr Dataset::NextFrame()
 
     if (img_left.empty() || img_right.empty())
     {
-        std::cerr << "load image " <<  _current_image_index << " failed" << std::endl;
+        std::cerr << "load image " << _current_image_index << " failed" << std::endl;
         return nullptr;
     }
     //待解决问题: 当图片读取完时干什么?
-    Frame::Ptr newFrame(new Frame(_current_image_index,img_left, img_right));
+    Frame::Ptr newFrame(new Frame(_current_image_index, img_left, img_right));
     //左右相机的数据都一样
-    newFrame->_camera = _cameras[1];
+    newFrame->_camera = _camera;
     _current_image_index++;
 
     return newFrame;
 }
 
-Camera::Ptr Dataset::getCamera(int camera_id)
+Camera::ConstPtr Dataset::getCamera()
 {
-    return _cameras[camera_id];
+    return _camera;
 }
 
-void Dataset::loadDBoW3(std::string path)
+void Dataset::loadDBoW3()
 {
-    _vocab = DBoW3::Vocabulary(path);
+    _vocab = DBoW3::Vocabulary(vocab_path);
 
-    if (_vocab.empty()) 
+    if (_vocab.empty())
     {
         cerr << "set vocabulary falied." << endl;
     }
+    //_db(_vocab, false, 0);
 }

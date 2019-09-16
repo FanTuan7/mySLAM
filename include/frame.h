@@ -14,6 +14,7 @@
 #include <map_point.h>
 #include <list>
 #include <mutex>
+#include <DBoW3/DBoW3.h>
 
 #define FRAME_GRID_ROWS 48
 #define FRAME_GRID_COLS 64
@@ -26,7 +27,7 @@ public:
     bool _key_frame;
 
 public:
-    Camera::Ptr _camera;
+    Camera::ConstPtr _camera;
     bool _isKF;
     unsigned long _id;
     double _time_stamp;
@@ -45,8 +46,9 @@ public:
     void releaseImages();
 
     void test();
-    //pose其实应该放在camera类里面
-    Sophus::SE3d _pose;
+    //world和camera的相互转换
+    Sophus::SE3d _T_w2c;
+    Sophus::SE3d _T_c2w;
 
     std::vector<Mappoint::Ptr> _map_points;
 
@@ -60,6 +62,11 @@ public:
     vector<float> _scaleFactors;
 
     std::mutex _mutex;
+
+    DBoW3::BowVector _BoWv;
+
+    Frame::Ptr _lastKF = nullptr;
+    Frame::Ptr _nextKF = nullptr;
 };
 
 #endif

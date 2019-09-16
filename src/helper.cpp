@@ -10,7 +10,8 @@ void pose_estimation_3d3d (
     Eigen::Matrix3d &R, Eigen::Vector3d &t
 )
 {
-    Eigen::Vector3d p1, p2;    
+    Eigen::Vector3d p1 = Eigen::Vector3d::Zero();
+    Eigen::Vector3d p2 = Eigen::Vector3d::Zero();
     int N = pts1.size();
     for ( int i=0; i<N; i++ )
     {

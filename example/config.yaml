@@ -1,0 +1,28 @@
+
+
+#dataset:
+  datafile: ../data/00/
+  Vocabulary: ../Vocabulary/ORBvoc.txt
+  fps: 1  #先测试最简单的, 每秒钟一帧
+
+#数据比较少,所以就把下一行注释了, 没有object之后读取时方便点
+#camera:
+  fx: 718.856
+  fy: 718.856
+  cx: 607.1928
+  cy: 185.2157
+  fb: 386.1448
+
+#ORBextractor:
+  features: 2000   #total feature number of all layers
+  scaleFactor: 1.2 #factor for image pyramid
+  levels: 8        # layers in image pyramid
+  iniThFAST: 20    #threshold for FAST corner extraction
+  minThFAST: 7
+
+  #tracking:
+  #与关键帧的选取有关的变量
+  #当更新关键帧之后过了KFmaxFrames帧, 或者 与关键帧的特征点匹配小于KFminmatches, 或者 与关键帧的特征点匹配小于KFrate*最佳匹配数  
+  #最佳匹配就是关键帧和它下一帧的匹配数
+  KF_mindistance: 10
+  KF_DoWrate: 0.55

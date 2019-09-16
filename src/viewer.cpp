@@ -84,7 +84,7 @@ void Viewer::threadLoop()
 }
 
 void Viewer::followCurrentFrame(pangolin::OpenGlRenderState& vis_camera) {
-    Sophus::SE3d Twc = _current_frame->_pose.inverse();
+    Sophus::SE3d Twc = _current_frame->_T_w2c;
     pangolin::OpenGlMatrix m(Twc.matrix());
     vis_camera.Follow(m, true);
 }
@@ -92,7 +92,7 @@ void Viewer::followCurrentFrame(pangolin::OpenGlRenderState& vis_camera) {
 void Viewer::drawFrame(Frame::Ptr frame, const float *color)
 {
     //Sophus::SE3d Twc = frame->_pose.inverse();
-    Sophus::SE3d Twc = frame->_pose;
+    Sophus::SE3d Twc = frame->_T_w2c;
     const float sz = 1.0;
     const int line_width = 2.0;
     const float fx = 400;
@@ -171,7 +171,7 @@ cv::Mat Viewer::plotFrameImage()
 
         if (lock.try_lock())
         {
-            auto kp = _current_frame->_map_points[i]->_kp;
+            auto kp = _current_frame->_map_points[i]->_kps[_current_frame->_id];
             cv::circle(img_out, kp.pt, 2, cv::Scalar(0, 250, 0),
                        2);
         }
