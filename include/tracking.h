@@ -48,8 +48,10 @@ public:
              int levels,
              int iniThFAST,
              int minThFAST,
-             float KF_DoWrate,
-             float KF_mindistance,
+             float KF_DoWrate_Low,
+             float KF_DoWrate_High,
+             int KF_mindistance,
+             int KF_maxdistance,
              const DBoW3::Vocabulary &vocab);
 
     void addFrame(Frame::Ptr frame);
@@ -86,12 +88,12 @@ public:
     void setKF();
     Frame::Ptr getKF();
     Frame::Ptr _KF;
-    double _KF_bestDoWScore;
-    float _KF_DoWrate;
-    double _KF_mindistance;
-    //判断该帧是关键帧  1 距离上一个关键帧的距离不要太近  且 2 和上一个关键帧的DoW相似度 低于 上一关键帧和临近帧BoW的相似度
-    //目前只使用DBoW来判断
-    bool c1, c2;
+    float _KF_DoWrate_Low;
+    float _KF_DoWrate_High;
+    int _KF_mindistance;
+    int _KF_maxdistance;
+    int _KF_distance;
+    bool c1, c2, c3;
     list<Frame::Ptr> _KFs;
 
     DBoW3::Vocabulary _vocab;

@@ -2,51 +2,45 @@
 
 Map::Map()
 {
-
 }
 
+void Map::insertKeyFrame(Frame::Ptr frame)
+{
+    std::unique_lock<std::mutex> lck(_mutex_kfs);
 
- void Map::insertKeyFrame(Frame::Ptr frame)
- {
-     std::unique_lock<std::mutex> lck(_mutex_kfs);
-    _keyframes_all.insert(std::make_pair(frame->_id,frame));
-    _current_frame = frame;
-
-    _local_keyframes.push_back(frame);
-    if(_local_keyframes.size() > _local_keyframes_num)
+    if (_keyframes_all.find(frame->_id) == _keyframes_all.end()) //这个判断条件是多余的, 因为insert本身就会忽略ID重复的数据
     {
-       // _local_keyframes.pop_front();
+        _keyframes_all.insert(std::make_pair(frame->_id, frame));
+        _current_frame = frame;
+        _local_keyframes.push_back(frame);
     }
 
-    for(auto mp : frame->_map_points)
+    if (_local_keyframes.size() > _local_keyframes_num)
     {
-        insertMapPoint(mp);
+        // _local_keyframes.pop_front();
     }
- }
-
+}
 
 void Map::insertMapPoint(Mappoint::Ptr map_point)
-{   
+{
 
-   std::unique_lock<std::mutex> lck(_mutex_mps);
+    std::unique_lock<std::mutex> lck(_mutex_mps);
     //插入新的关键点
     //if(map_points_all.find(map_point->_id) ==map_points_all.end()) //这个判断条件是多余的, 因为insert本身就会忽略ID重复的数据
     {
-        map_points_all.insert(std::make_pair(map_point->_id,map_point));
+        map_points_all.insert(std::make_pair(map_point->_id, map_point));
     }
     //直接替换点旧的地图点
     //else
     { //写不写这句话都一样，因为local mapping里面是指针操作
-    //    map_points_all[map_point->_id] = map_point;
+        //    map_points_all[map_point->_id] = map_point;
     }
-  
+
     _local_mappoints.push_back(map_point);
-    if(_local_mappoints.size()>500000)
+    if (_local_mappoints.size() > 500000)
     {
         _local_mappoints.pop_front();
     }
-    
-    
 }
 
 void Map::set_current_frame(Frame::Ptr frame)

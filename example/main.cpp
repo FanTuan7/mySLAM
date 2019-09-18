@@ -13,7 +13,7 @@ int main()
     Dataset dataset = Dataset("../example/config.yaml");
 
     cout << "start loading vocab" << endl;
-    //dataset.loadDBoW3();
+    dataset.loadDBoW3();
     cout << "finish loading vocab" << endl;
 
     Map::Ptr map(new Map());
@@ -23,8 +23,6 @@ int main()
     viewer->_groundtruth = dataset._groundtruth;
 
     LocalMapping_g2o localMapping(map);
-    //LocalMapping localMapping(map);
-    
     
     Tracking::Ptr tracking(new Tracking(dataset._camera,
                                         map,
@@ -33,8 +31,10 @@ int main()
                                         dataset._levels,
                                         dataset._iniThFAST,
                                         dataset._minThFAST,
-                                        dataset._KF_DoWrate,
+                                        dataset._KF_DoWrate_Low,
+                                        dataset._KF_DoWrate_High,
                                         dataset._KF_mindistance,
+                                        dataset._KF_maxdistance,
                                         dataset._vocab));
 
     while (1)
@@ -42,8 +42,8 @@ int main()
         Frame::Ptr frame = dataset.NextFrame();
         if (frame!=nullptr )
         {  
-            tracking->addFrame(frame);
-       std::vector<Mappoint::Ptr>  mps = tracking->_current_frame->_map_points;
+          tracking->addFrame(frame);
+      /*   std::vector<Mappoint::Ptr>  mps = tracking->_current_frame->_map_points;
             for(Mappoint::Ptr mp:mps)
             {
                 double x = mp->_T_w2p[0];
@@ -63,11 +63,9 @@ int main()
                     cout <<"z  "<< z << endl;
                 }
             }
-
-            localMapping.readFrame(tracking->_current_frame);
-            localMapping.run();
-            map->insertKeyFrame(localMapping._currKF);
-           //map->insertKeyFrame(tracking->_current_frame);
+*/          frame->_isKF = true;
+            localMapping.run(frame);
+            //map->insertKeyFrame(tracking->_KF);
             viewer->updateLocalMap();
         }
     }

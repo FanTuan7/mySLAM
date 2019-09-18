@@ -7,8 +7,10 @@ Tracking::Tracking(Camera::ConstPtr camera,
                    int levels,
                    int iniThFAST,
                    int minThFAST,
-                   float KF_DoWrate,
-                   float KF_mindistance,
+                   float KF_DoWrate_Low,
+                   float KF_DoWrate_High,
+                   int KF_mindistance,
+                   int KF_maxdistance,
                    const DBoW3::Vocabulary &vocab)
     : _camera(camera),
       _map(map),
@@ -17,8 +19,10 @@ Tracking::Tracking(Camera::ConstPtr camera,
       _levels(levels),
       _iniThFAST(iniThFAST),
       _minThFAST(minThFAST),
-      _KF_DoWrate(KF_DoWrate),
+      _KF_DoWrate_Low(KF_DoWrate_Low),
+      _KF_DoWrate_High(KF_DoWrate_High),
       _KF_mindistance(KF_mindistance),
+      _KF_maxdistance(KF_maxdistance),
       _vocab(vocab)
 {
     _state = NOT_INITIALIZED;
@@ -73,11 +77,10 @@ void Tracking::stereoInitialization()
 
     for (auto mp : _current_frame->_map_points)
     {
-        mp->_T_w2p =  mp->_T_c2p[_current_frame->_id];
-        
+        mp->_T_w2p = mp->_T_c2p[_current_frame->_id];
     }
-
-    //setKF();
+    //第一帧肯定是关键帧
+    setKF();
 }
 
 //测试图片集,经过两个转弯,效果还可以. tracking 部分算是完成
@@ -86,7 +89,7 @@ void Tracking::stereoInitialization()
 void Tracking::trackFramesBF(Frame::Ptr &f1, Frame::Ptr &f2)
 {
     cout << endl
-         << "trackLastFrameBF Frame " << f1->_id <<" and "<<f2->_id<< endl;
+         << "trackLastFrameBF Frame " << f1->_id << " and " << f2->_id << endl;
 
     ORBmatcher::Ptr matcher(new ORBmatcher());
     vector<DMatch> matches =
@@ -114,8 +117,6 @@ void Tracking::trackFramesBF(Frame::Ptr &f1, Frame::Ptr &f2)
     Eigen::Vector3d t;
     //R和t是将相对于current的坐标系的位姿转换到last的坐标系中, 就是current相对于last的运动last_T_current
     pose_estimation_3d3d(pt3f_2, pt3f_1, R, t);
-    //pose_estimation_BA ( pt3f_1,pt3f_2, R, t);
-    //根据_motion更新当前帧和其中3D点的坐标
 
     _T_last2curr = Sophus::SE3d(R, t);
     _T_curr2last = _T_last2curr.inverse();
@@ -123,43 +124,55 @@ void Tracking::trackFramesBF(Frame::Ptr &f1, Frame::Ptr &f2)
 
     updateCurrentFrame(matches);
 
-    /*
-    if (_KF_bestDoWScore < 0)
+    //如果上一帧是关键帧,则计算其与当前帧的词袋模型相似度,然后当作该frame最好的词袋匹配值. 这个应该需要保证字典被读取后,不能被修改.
+    _KF_distance++;
+    if (_last_frame->_isKF)
     {
-        _KF_bestDoWScore = _vocab.score(_KF->_BoWv, _current_frame->_BoWv);
+        _last_frame->_bestScore = _vocab.score(_last_frame->_BoWv, _current_frame->_BoWv);
     }
-    else
+    else if (_KF_distance > _KF_mindistance)
     {
+        //c1 = true;
+
         double score = _vocab.score(_KF->_BoWv, _current_frame->_BoWv);
-        if (score < _KF_bestDoWScore * _KF_DoWrate)
+        if (score < _KF->_bestScore * _KF_DoWrate_Low)
         {
-            c1 = true;
+            c2 = true;
+        }
+
+        if (_KF_distance > _KF_maxdistance)
+        {
+            if (score < _KF->_bestScore * _KF_DoWrate_High)
+            {
+                c3 = true;
+            }
+        }
+
+        if (c2 || c3)
+        {
+            setKF();
         }
     }
 
-    if (c1)
-    {
-        setKF();
-    }*/
     //Mat out;
     //drawMatches(f1->_img_left,f1->_kps_left,f2->_img_left,f2->_kps_left,matches,out);
     //imshow("last和current图匹配",out);
     //cv::waitKey(0);
-    cout << endl<<"当前帧相对于上一帧的移动_" << endl;
-    cout <<  _T_last2curr.matrix3x4() << endl<< endl;
-
-    cout << endl<<"当前帧的世界坐标" << endl;
-    cout <<  _current_frame->_T_w2c.matrix3x4() << endl<< endl;
-
-}   
+    cout << endl
+         << "Frame " << f2->_id << " 相对于上一帧的移动" << endl;
+    cout << _T_last2curr.matrix3x4() << endl
+         << endl;
+}
 
 void Tracking::setKF()
 {
+    _current_frame->_isKF = true;
     _KF = _current_frame;
-    _KF_bestDoWScore = -1;
+
+    _KF_distance = 0;
     c1 = false;
-    //c2 = false;
-    //_KFs.push_back(_current_frame);
+    c2 = false;
+    c3 = false;
 }
 //按照匀速模型将上一帧的特征点投影到当前帧,然后根据投影位置 范围查找ORB匹配
 //最终得到3D匹配对,进行ICP计算
@@ -211,7 +224,7 @@ void Tracking::trackWithMotionModel()
     vector<Mappoint::Ptr> mps1 = _last_frame->_map_points;
     vector<Mappoint::Ptr> mps2 = _current_frame->_map_points;
 
-    for(int i=0; i< good_matches.size() ; i++)
+    for (int i = 0; i < good_matches.size(); i++)
     {
         pt3f_1[i] = mps1[good_matches[i].queryIdx]->_T_c2p[_last_frame->_id];
         pt3f_2[i] = mps2[good_matches[i].trainIdx]->_T_c2p[_current_frame->_id];
@@ -288,12 +301,12 @@ void Tracking::initCurrentFrame()
         y = z * (v - cy) / fy;
 
         Mappoint::Ptr mp(new Mappoint(_current_frame->_ORB_descriptor_left.row(i)));
-        
+
         mp->_T_c2p.insert(std::make_pair(_current_frame->_id, Eigen::Vector3d(x, y, z)));
         mp->_kps.insert(std::make_pair(_current_frame->_id, _current_frame->_kps_left[i]));
         _current_frame->_map_points.push_back(mp);
     }
-    //_vocab.transform(_current_frame->_ORB_descriptor_left, _current_frame->_BoWv);
+    _vocab.transform(_current_frame->_ORB_descriptor_left, _current_frame->_BoWv);
 }
 
 //三个任务
@@ -302,12 +315,11 @@ void Tracking::updateCurrentFrame(vector<DMatch> &matches)
 {
 
     _current_frame->_T_w2c = _last_frame->_T_w2c * _T_last2curr;
-    _current_frame->_T_c2w = _T_curr2last * _last_frame->_T_c2w; 
+    _current_frame->_T_c2w = _T_curr2last * _last_frame->_T_c2w;
 
     for (auto mp : _current_frame->_map_points)
     {
         mp->_T_w2p = _current_frame->_T_w2c * mp->_T_c2p[_current_frame->_id];
-        
     }
 
     //这段地图点的更新有问题
@@ -322,7 +334,7 @@ void Tracking::updateCurrentFrame(vector<DMatch> &matches)
         //mp1->_T_c2p.insert(mp2->_T_c2p.begin(), mp2->_T_c2p.end()); //debug时候两句话的输出值不一样,但理论上应该没问题?
         mp1->_T_c2p.insert(std::make_pair(_current_frame->_id, mp2->_T_c2p[_current_frame->_id]));
         mp1->observations++;
-        if(mp1->observations>2)
+        if (mp1->observations >= 3)
         {
             mp1->good = true;
         }

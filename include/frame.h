@@ -28,7 +28,6 @@ public:
 
 public:
     Camera::ConstPtr _camera;
-    bool _isKF;
     unsigned long _id;
     double _time_stamp;
     Frame();
@@ -63,10 +62,12 @@ public:
 
     std::mutex _mutex;
 
+    bool _isKF;
     DBoW3::BowVector _BoWv;
-
+    double _bestScore;
     Frame::Ptr _lastKF = nullptr;
     Frame::Ptr _nextKF = nullptr;
+    
 };
 
 #endif

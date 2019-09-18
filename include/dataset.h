@@ -43,8 +43,11 @@ public:
     int _iniThFAST;
     int _minThFAST;
 
-    float _KF_DoWrate;
-    float _KF_mindistance;
+    float _KF_DoWrate_Low;
+    float _KF_DoWrate_High;
+    int _KF_mindistance;
+    int _KF_maxdistance;
+
 
     std::string vocab_path;
     DBoW3::Vocabulary _vocab;

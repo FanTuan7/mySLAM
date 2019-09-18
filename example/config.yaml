@@ -25,5 +25,7 @@
   #与关键帧的选取有关的变量
   #当更新关键帧之后过了KFmaxFrames帧, 或者 与关键帧的特征点匹配小于KFminmatches, 或者 与关键帧的特征点匹配小于KFrate*最佳匹配数  
   #最佳匹配就是关键帧和它下一帧的匹配数
-  KF_mindistance: 10
-  KF_DoWrate: 0.55
+  KF_mindistance: 2
+  KF_maxdistance: 7
+  KF_DoWrate_Low: 0.7
+  KF_DoWrate_High: 0.95

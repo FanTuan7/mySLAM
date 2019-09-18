@@ -1,5 +1,6 @@
 #include "map_point.h"
 
+//0 ~ 42 9496 7295
 unsigned long Mappoint::count =0;
 
 Mappoint::Mappoint(cv::Mat descripter)
@@ -8,7 +9,6 @@ Mappoint::Mappoint(cv::Mat descripter)
     observations = 1;
     _id = count;
     count++;
-    observations = 1;
 }
 
 

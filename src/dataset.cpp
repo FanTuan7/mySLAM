@@ -31,8 +31,10 @@ Dataset::Dataset(const std::string &yaml_file_path)
     _iniThFAST = _config["iniThFAST"].as<int>();
     _minThFAST = _config["minThFAST"].as<int>();
 
-    _KF_DoWrate = _config["KF_DoWrate"].as<float>();
-    _KF_mindistance = _config["KF_mindistance"].as<float>();
+    _KF_DoWrate_Low = _config["KF_DoWrate_Low"].as<float>();
+    _KF_DoWrate_High  = _config["KF_DoWrate_High"].as<float>();
+    _KF_mindistance = _config["KF_mindistance"].as<int>();
+    _KF_maxdistance = _config["KF_maxdistance"].as<int>();
 
 
     vocab_path = _config["Vocabulary"].as<std::string>();

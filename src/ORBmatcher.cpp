@@ -107,7 +107,7 @@ vector<DMatch> ORBmatcher::BF_matching(const Mat &img1,
     }
 
     cv::Mat mask;
-    cv::findHomography(pt2f1, pt2f2, cv::RANSAC, 4, mask);
+    cv::findHomography(pt2f1, pt2f2, cv::RANSAC, 3, mask);
 
     vector<DMatch> good_matches;
 
