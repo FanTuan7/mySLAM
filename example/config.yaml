@@ -1,8 +1,9 @@
 
 
 #dataset:
-  datafile: ../data/00/
-  Vocabulary: ../Vocabulary/ORBvoc.txt
+  datafile: ../../data/00/
+  Groundtruth: ../../data/00.txt
+  Vocabulary: ../../Vocabulary/ORBvoc.txt
   fps: 1  #先测试最简单的, 每秒钟一帧
 
 #数据比较少,所以就把下一行注释了, 没有object之后读取时方便点

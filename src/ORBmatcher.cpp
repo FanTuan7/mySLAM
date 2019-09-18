@@ -7,15 +7,15 @@ ORBmatcher::ORBmatcher()
 //测试完毕
 //只在左右图匹配时使用
 //用depth的值来表明该点是否在右图成功匹配到
-vector<float> ORBmatcher::stereo_Matching(  const Mat &img_left,
-                                            const Mat &img_right,
-                                            const vector<KeyPoint> &keypoints_left,
-                                            const float &fb)
-{   
+vector<double> ORBmatcher::stereo_Matching(const Mat &img_left,
+                                           const Mat &img_right,
+                                           const vector<KeyPoint> &keypoints_left,
+                                           const double &fb)
+{
     int size = keypoints_left.size();
 
     //用光流法在右图追踪特征点,计算深度
-    vector<float> depths(size);
+    vector<double> depths(size);
     vector<Point2f> points2f_left(size), points2f_right(size);
 
     for (int i = 0; i < size; i++)
@@ -25,21 +25,21 @@ vector<float> ORBmatcher::stereo_Matching(  const Mat &img_left,
 
     vector<uchar> status;
     Mat error;
-    //看看两组点数量是否一致
     calcOpticalFlowPyrLK(img_left, img_right, points2f_left, points2f_right, status, error);
 
-    vector<KeyPoint> kp1s, kp2s;
-    for (size_t i = 0; i < status.size(); ++i)
+    size = status.size();
+    for (int i = 0; i < size; i++)
     {
         //只保留在右图成功追踪到的点
+        //status = 1 是成功寻找到的匹配
         if (status[i])
         {
-            //保证满足基线约束 points2f_right的x和y为小数
-            if (abs(points2f_left[i].y - points2f_right[i].y)<1)
+            //保证满足基线约束 points2f的x和y为小数
+            if (abs(points2f_left[i].y - points2f_right[i].y) < 1.5)
             {
                 //控制视野范围,太近和太远的点都不考虑
-                int disparity = points2f_left[i].x - points2f_right[i].x;
-                float depth = fb / disparity;
+                float disparity = points2f_left[i].x - points2f_right[i].x;
+                double depth = fb / disparity;
                 if (depth > 2 && depth < 45)
                 {
                     depths[i] = depth;
@@ -48,48 +48,40 @@ vector<float> ORBmatcher::stereo_Matching(  const Mat &img_left,
                 {
                     depths[i] = -1;
                 }
-                
             }
             else
-            {   
+            {
                 //重复代码怎么解决?
                 depths[i] = -1;
             }
-            
         }
         else
         {
             depths[i] = -1;
         }
     }
-
-    // DEBUG>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    //查看右图光流追踪效果
- /*   Mat img2_single;
-    cvtColor(img_right, img2_single, CV_GRAY2BGR);
-
-    for (int i = 0; i < keypoints_left.size(); i++)
+    /*
+    vector<KeyPoint> kp1s, kp2s;
+    Mat out1, out2, compare;
+     cvtColor(img_right, compare, cv::COLOR_GRAY2BGR);
+    int m = depths.size();
+    for(int i =0; i<m ;i++)
     {
-        if (status[i])
+        if(depths[i]>0)
         {
-            if (abs(points2f_left[i].y - points2f_right[i].y) < 1)
-            {
-                circle(img2_single, keypoints_left[i].pt, 2, Scalar(0, 250, 0), 2);
-                line(img2_single, keypoints_left[i].pt, keypoints_right[i].pt, Scalar(0, 250, 0));
-            }
+            kp1s.push_back(KeyPoint(points2f_left[i],5));
+            kp2s.push_back(KeyPoint(points2f_right[i],5));
+            line(compare, points2f_left[i], points2f_right[i], Scalar(0, 250, 0));
         }
     }
-    imshow("left", img2_single);
-    cvWaitKey(0);*/
-    // DEBUG<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    //查看特征点效果
-    //DEBUG
-    /*  Mat out1, out2;
-    drawKeypoints(img_left, keypoints_left, out1);
-    drawKeypoints(img_right, keypoints_right, out2);
+
+    drawKeypoints(img_left, kp1s, out1);
+    drawKeypoints(img_right, kp2s, out2);
     imshow("left", out1);
     imshow("right", out2);
-    cvWaitKey(0);*/
+    imshow("compare", compare);
+    cv::waitKey(0);
+*/
     return depths;
 }
 
@@ -129,7 +121,7 @@ vector<DMatch> ORBmatcher::BF_matching(const Mat &img1,
 
     //DEBUG
     //cout << " good_matches: " << good_matches.size() << endl;
-   /* Mat out1, out2;
+    /* Mat out1, out2;
     cv::drawMatches(img1, keypoints1, img2, keypoints2, matches, out1);
     cv::drawMatches(img1, keypoints1, img2, keypoints2, good_matches, out2);
 
@@ -145,9 +137,15 @@ vector<DMatch> ORBmatcher::BF_matching(const Mat &img1,
 //假设相机运动符合匀速运动,那么frame1中的3D点经过motion变换,应该在frame2的相机坐标系中,
 //然后通过内参得到3D点在frame2上的投影位置,然后寻找匹配
 //如果两个点都匹配到一个点上怎么办? 应该能通过旋转直方图剔除出去
-vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr frame2, Sophus::SE3d motion, vector<bool> &rotation_check)
+//把last的点按照
+
+//   _current_frame->_T_w2c = _last_frame->_T_w2c * _T_last2curr;
+//   _current_frame->_T_c2w = _T_curr2last * _last_frame->_T_c2w;
+
+vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr frame2, Sophus::SE3d curr2last, Sophus::SE3d last2curr, vector<bool> &rotation_check, Camera::ConstPtr camera)
 {
-    bool checkOrientation = false;
+    //KITII车载相机一直是水平的, 所以不用统计旋转直方图, 直接判断两个点的旋转方向是否一致
+    //bool checkOrientation = false;
 
     std::vector<Mappoint::Ptr> mps_1 = frame1->_map_points;
     int num_mps_1 = mps_1.size();
@@ -158,38 +156,23 @@ vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr fra
     rotation_check.clear();
     rotation_check.reserve(num_mps_1);
 
-    Camera::ConstPtr c = frame1->_camera;
-    double fx = c->_fx;
-    double fy = c->_fy;
-    double cx = c->_cx;
-    double cy = c->_cy;
-
-    //当前dataset应该没必要判断前进和后退
-    bool forward = motion.transZ >= 0;
-    bool backward = motion.transZ < 0;
-
-    //旋转直方图用来剔除outliers
-    //分成30份  HISTO_LENGTH = 30
-    vector<vector<int>> rotHist(HISTO_LENGTH);
-    float factor = 1.0f / HISTO_LENGTH;
-    if (checkOrientation)
-    {
-        for (int i = 0; i < HISTO_LENGTH; i++)
-        {
-            rotHist[i].reserve(500);
-        }
-    }
+    double fx = camera->_fx;
+    double fy = camera->_fy;
+    double cx = camera->_cx;
+    double cy = camera->_cy;
 
     //遍历frame1中的每一个mp
     for (int i = 0; i < num_mps_1; i++)
     {
         Mappoint::Ptr mp1 = mps_1[i];
-        Eigen::Vector3d pos1 = mp1->_localPos;
-        Eigen::Vector3d pos2 = motion * pos1;
+        Eigen::Vector3d last2P = mp1->_T_c2p[frame1->_id];
+        cout << last2curr.matrix3x4() << endl<<endl;
+        cout << curr2last.matrix3x4() << endl<<endl;
+        Eigen::Vector3d curr2P = curr2last.rotationMatrix() * last2P + curr2last.translation();////////////////////////TODO: 把这个坐标变换整明白
 
-        double x = pos2[0];
-        double y = pos2[1];
-        double z_inv = 1.0 / pos2[2];
+        double x = curr2P[0];
+        double y = curr2P[1];
+        double z_inv = 1.0 / curr2P[2];
 
         if (z_inv < 0)
         {
@@ -208,31 +191,26 @@ vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr fra
         int lastOctave = mp1->_kps[frame1->_id].octave;
         //15是ORB SLAM2中针对双目的值 应该是双目得到的3D点会不准确,所以范围大点
         //magic number 自己手动调的
-        float radius = 50 /** frame2->_scaleFactors[lastOctave]*/;
+        float radius = 15 /** frame2->_scaleFactors[lastOctave]*/;
 
-        vector<int> index2;
+        vector<int> index;
 
         //往前走物体会变大,所以用当前帧的小图像上的特征
-        if (forward)
-        {
-            index2 = frame2->getFeaturesInArea(u, v, radius, lastOctave, -1);
-        }
-        else if (backward)
-        {
-            index2 = frame2->getFeaturesInArea(u, v, radius, 0, lastOctave);
-        }
+        //金字塔模型是从1层开始, 图像不断缩小
+        //有时车会停下来,这里懒得判断运动状态了, 直接-1 +1 搜索
+        index = frame2->getFeaturesInArea(u, v, radius, lastOctave-1, lastOctave+1);
 
-        if (index2.empty())
+        if (index.empty())
         {
             continue;
         }
 
         //DEBUG 画图 看看左图单个特征点和右图的哪些特征点匹配
-  /*      Mat img1 = frame1->_img_left;
+        Mat img1 = frame1->_img_left;
         Mat img2 = frame2->_img_left;
 
         vector<cv::KeyPoint> keypoints1, keypoints2, keypoints3;
-        keypoints1.push_back(mp1->_kp); //左图kp
+        keypoints1.push_back(mp1->_kps[frame1->_id]); //左图kp
         keypoints2 = frame2->_kps_left; //右图对应的范围kp
 
         KeyPoint kp_right = KeyPoint(Point2f(u, v), 3);
@@ -242,11 +220,11 @@ vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr fra
 
         vector<DMatch> matches;
         DMatch new_match;
-        for (int m = 0; m < index2.size(); m++)
+        for (int m = 0; m < index.size(); m++)
         {
             DMatch new_match;
             new_match.queryIdx = 0;
-            new_match.trainIdx = index2[m];
+            new_match.trainIdx = index[m];
             matches.push_back(new_match);
         }
 
@@ -260,37 +238,40 @@ vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr fra
         matches_0.push_back(match_0);
         drawMatches(img1, keypoints1, img2, keypoints3, matches_0, out2);
         imshow("左图单个特征点与右图的单个匹配", out2);
-        cvWaitKey(0);
-*/
+        cv::waitKey(0);
+
         //开始暴力匹配
         cv::Mat d1 = mp1->_descripter;
 
+        //利用secondBest来选取最明显的匹配
         int bestDist = 256;
-        //int secondBest = 256;
-        int bestIndex2 = -1;
+        int secondBest = 256;
+        int bestIndex = -1;
 
-        for (int j = 0, max = index2.size(); j < max; j++)
+        for (int j = 0, max = index.size(); j < max; j++)
         {
-            cv::Mat d2 = frame2->_map_points[index2[j]]->_descripter;
+            cv::Mat d2 = frame2->_map_points[index[j]]->_descripter;
             int dist = descriptorDistance(d1, d2);
+            float angle_dist = abs( mp1->_kps[frame1->_id].angle - frame2->_map_points[index[j]]->_kps[frame2->_id].angle );
 
-            if (dist < bestDist)
-            {
+            if (dist < bestDist && angle_dist < 20)
+            {   
+                secondBest = bestDist;
                 bestDist = dist;
-                bestIndex2 = index2[j];
+                bestIndex = index[j];
             }
         }
 
-        if (bestDist < 100)
+        if ((secondBest-bestDist)>50)
         {
             DMatch match;
             match.queryIdx = i;
-            match.trainIdx = bestIndex2;
+            match.trainIdx = bestIndex;
             match.distance = bestDist;
             results.push_back(match);
             rotation_check.push_back(true);
 
-            if (checkOrientation)
+            /*if (checkOrientation)
             {
                 float rot = mp1->_kps[frame1->_id].angle - frame2->_map_points[bestIndex2]->_kps[frame2->_id].angle;
 
@@ -307,11 +288,11 @@ vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr fra
 
                 //用match在results的下标作为标识
                 rotHist[interval].push_back(results.size() - 1);
-            }
+            }*/
         }
     }
 
-    if (checkOrientation)
+    /*if (checkOrientation)
     {
 
         int ind1 = -1;
@@ -330,12 +311,12 @@ vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr fra
                 }
             }
         }
-    }
+    }*/
 
     //DEBUG
     //DEBUG 画图 看看左图的特征点能投影到右图的哪里
 
-     /*   Mat img1 = frame1->_img_left;
+    /*   Mat img1 = frame1->_img_left;
         Mat img2 = frame2->_img_left;
 
         vector<cv::KeyPoint> keypoints1, keypoints2;
@@ -345,13 +326,10 @@ vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr fra
         cv::Mat out1, out2;
         cv::drawKeypoints(img1,keypoints1,out1);
         cv::drawKeypoints(img2,keypoints2,out2);*/
-        //imshow("frame1的特征点",out1);
-        //imshow("frame2的特征点",out2);
+    //imshow("frame1的特征点",out1);
+    //imshow("frame2的特征点",out2);
 
-      
-
- 
-  /*  vector<DMatch> matches, good_matches;
+    /*  vector<DMatch> matches, good_matches;
     matches = results;
     for (int i = 0; i < rotation_check.size(); i++)
     {
@@ -363,8 +341,8 @@ vector<DMatch> ORBmatcher::projection_Matching(Frame::Ptr frame1, Frame::Ptr fra
 
     //cout << "      matches: " << matches.size() << endl;
     //cout << " good matches: " << good_matches.size() << endl;
-       // cout << "投影匹配数量: " << good_matches.size() << endl;
-  /*  cv::drawMatches(img1, keypoints1, img2, keypoints2, matches, out1);
+    // cout << "投影匹配数量: " << good_matches.size() << endl;
+    /*  cv::drawMatches(img1, keypoints1, img2, keypoints2, matches, out1);
     cv::drawMatches(img1, keypoints1, img2, keypoints2, good_matches, out2);
 
     //imshow("matches", out1);

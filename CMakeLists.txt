@@ -3,6 +3,7 @@ Project(mySLAM)
 
 set(CMAKE_CXX_FLAGS "-std=c++11")
 set(CMAKE_BUILD_TYPE "Debug") 
+#set(CMAKE_BUILD_TYPE "Release") 
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
 
 add_executable(main example/main.cpp)
@@ -38,7 +39,8 @@ src/camera.cpp
 src/dataset.cpp
 src/frame.cpp
 src/helper.cpp
-src/local_mapping.cpp
+#src/local_mapping_custom_type.cpp
+src/local_mapping_g2o_type.cpp
 src/map_point.cpp
 src/map.cpp
 src/ORBextractor.cpp

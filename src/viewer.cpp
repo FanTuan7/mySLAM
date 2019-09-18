@@ -4,7 +4,8 @@ using namespace std;
 
 //从构造函数开始就画图
 Viewer::Viewer()
-{
+{   
+    viewer_running = true;
     _viewer_thread = std::thread(std::bind(&Viewer::threadLoop, this));
 }
 
@@ -26,7 +27,7 @@ void Viewer::setCurrentFrame(Frame::Ptr frame)
 }
 
 void Viewer::updateLocalMap()
-{   
+{
     assert(_map != nullptr);
     std::unique_lock<std::mutex> lock(_mutex);
     _frames_to_draw = _map->_local_keyframes;
@@ -51,8 +52,6 @@ void Viewer::threadLoop()
             .SetBounds(0.0, 1.0, 0.0, 1.0, -1024.0f / 768.0f)
             .SetHandler(new pangolin::Handler3D(vis_camera));
 
-
-
     while (!pangolin::ShouldQuit() && viewer_running)
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -75,6 +74,8 @@ void Viewer::threadLoop()
             drawMapPoints_keyframes();
         }
 
+        drawGroundtruth();
+
         pangolin::FinishFrame();
         //us   办秒钟更新一下
         usleep(50000);
@@ -83,7 +84,8 @@ void Viewer::threadLoop()
     std::cout << "Stop viewer" << std::endl;
 }
 
-void Viewer::followCurrentFrame(pangolin::OpenGlRenderState& vis_camera) {
+void Viewer::followCurrentFrame(pangolin::OpenGlRenderState &vis_camera)
+{
     Sophus::SE3d Twc = _current_frame->_T_w2c;
     pangolin::OpenGlMatrix m(Twc.matrix());
     vis_camera.Follow(m, true);
@@ -91,9 +93,8 @@ void Viewer::followCurrentFrame(pangolin::OpenGlRenderState& vis_camera) {
 
 void Viewer::drawFrame(Frame::Ptr frame, const float *color)
 {
-    //Sophus::SE3d Twc = frame->_pose.inverse();
     Sophus::SE3d Twc = frame->_T_w2c;
-    const float sz = 1.0;
+    const float sz = 0.5;
     const int line_width = 2.0;
     const float fx = 400;
     const float fy = 400;
@@ -143,7 +144,8 @@ void Viewer::drawFrame(Frame::Ptr frame, const float *color)
 
 void Viewer::drawMapPoints_keyframes()
 {
-    for (auto& kf : _frames_to_draw) {
+    for (auto &kf : _frames_to_draw)
+    {
         drawFrame(kf, BLUE);
     }
 
@@ -151,7 +153,7 @@ void Viewer::drawMapPoints_keyframes()
     glBegin(GL_POINTS);
     for (auto &mps : _mappoints_to_draw)
     {
-        auto pos = mps->_worldPos;
+        auto pos = mps->_T_w2p;
         glColor3f(RED[0], RED[1], RED[2]);
         glVertex3d(pos[0], pos[1], pos[2]);
     }
@@ -177,4 +179,16 @@ cv::Mat Viewer::plotFrameImage()
         }
     }
     return img_out;
+}
+
+void Viewer::drawGroundtruth()
+{
+    glPointSize(3);
+    glBegin(GL_POINTS);
+    for (auto pos : _groundtruth)
+    {
+        glColor3f(BLACK[0], BLACK[1], BLACK[2]);
+        glVertex3d(pos[0], pos[1], pos[2]);
+    }
+    glEnd();
 }

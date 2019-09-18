@@ -6,6 +6,12 @@
 #include <memory>
 #include <yaml-cpp/yaml.h>
 #include <DBoW3/DBoW3.h>
+#include <Eigen/Core>
+
+#include <fstream>// std::ifstream
+#include <iostream>// std::wcout
+#include <vector>
+#include <string>
 
 class Dataset
 {
@@ -20,7 +26,7 @@ public:
     bool Init();
 
     Frame::Ptr NextFrame();
-    Camera::ConstPtr getCamera(); //修改,只返回一个相机
+    Camera::ConstPtr getCamera(); 
 
     std::string _left_images_path_start ;
     std::string _right_images_path_start;
@@ -44,6 +50,10 @@ public:
     DBoW3::Vocabulary _vocab;
     DBoW3::Database _db;
     void loadDBoW3();
+
+    void getGroundtruth();
+    std::string _groundtruth_path;
+    std::vector<Eigen::Vector3d> _groundtruth;
 };
 
 

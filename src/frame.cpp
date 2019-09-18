@@ -87,11 +87,11 @@ vector<int> Frame::getFeaturesInArea(float &x, float  &y, float &r, int minLevel
                 KeyPoint &kp = _kps_left[cell[i]];
                 if(checkLevels)
                 {
-                    /*if(kp.octave<minLevel)
+                    if(kp.octave<minLevel)
                         continue;
                     if(maxLevel>=0)
                         if(kp.octave>maxLevel)
-                            continue;*/
+                            continue;
                 }
 
                 const float distx = kp.pt.x-x;

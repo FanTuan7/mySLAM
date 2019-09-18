@@ -18,11 +18,11 @@ Dataset::Dataset(const std::string &yaml_file_path)
 
     //读取相机参数
     int id = 0;
-    float fx = _config["fx"].as<float>();
-    float fy = _config["fy"].as<float>();
-    float cx = _config["cx"].as<float>();
-    float cy = _config["cy"].as<float>();
-    float fb = _config["fb"].as<float>();
+    double fx = _config["fx"].as<double>();
+    double fy = _config["fy"].as<double>();
+    double cx = _config["cx"].as<double>();
+    double cy = _config["cy"].as<double>();
+    double fb = _config["fb"].as<double>();
     _camera = Camera::ConstPtr(new Camera{id, fx, fy, cx, cy, fb});
 
     _features = _config["features"].as<int>();
@@ -36,6 +36,10 @@ Dataset::Dataset(const std::string &yaml_file_path)
 
 
     vocab_path = _config["Vocabulary"].as<std::string>();
+
+    _groundtruth_path  = _config["Groundtruth"].as<std::string>();
+    getGroundtruth();
+
 }
 
 Frame::Ptr Dataset::NextFrame()
@@ -76,5 +80,28 @@ void Dataset::loadDBoW3()
     {
         cerr << "set vocabulary falied." << endl;
     }
-    //_db(_vocab, false, 0);
+}
+
+//viewr里面画点是用的Eigen:Vector3d 数据. 所以这里只需要存储相机的translation就行
+void Dataset::getGroundtruth()
+{
+    ifstream fin(_groundtruth_path);
+
+    std::vector<double> numbers;
+
+    if(! fin) 
+    {
+        std::cerr << "不能读取 ground truth。 文件打不开\n"; 
+    }
+
+    std::string line;
+    while(getline(fin, line))
+    {
+        std::istringstream is(line);
+        numbers = std::vector<double>( std::istream_iterator<double>(is),
+                              std::istream_iterator<double>() ) ;
+
+        _groundtruth.push_back(Eigen::Vector3d(numbers[3],numbers[7],numbers[11]));
+    }
+      
 }

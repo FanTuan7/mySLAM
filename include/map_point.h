@@ -22,17 +22,18 @@ public:
     //factory模式不会,用count来计数
     static unsigned long count;
     unsigned long _id;
-
+    unsigned long _id_g2o;
+    
     //cv::KeyPoint _kp;
     cv::Mat _descripter;
     //相对于所在帧的位姿
-    Eigen::Vector3d _localPos;
-    Eigen::Vector3d _worldPos;
+    std::unordered_map<int, Eigen::Vector3d> _T_c2p;
+    Eigen::Vector3d _T_w2p;
     unsigned int observations;
 
     bool good;
 
-    Mappoint(cv::Mat descripter,Eigen::Vector3d xyz);
+    Mappoint(cv::Mat descripter);
 
     std::mutex _mutex;
     //对每一个frame都有一个kp

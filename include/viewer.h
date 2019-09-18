@@ -21,6 +21,7 @@ class Viewer
     const float BLUE[3] = {0, 0, 1};
     const float GREEN[3] = {0, 1, 0};
     const float RED[3] = {1, 0, 0};
+    const float BLACK[3] = {0, 0, 0};
 
     using Ptr = std::shared_ptr<Viewer>;
     using ConstPtr = std::shared_ptr<const Viewer>;
@@ -58,6 +59,8 @@ class Viewer
 
     cv::Mat plotFrameImage();
 
+    std::vector<Eigen::Vector3d> _groundtruth;
+    void drawGroundtruth();
 
 };
 

@@ -2,8 +2,8 @@
 
 unsigned long Mappoint::count =0;
 
-Mappoint::Mappoint(cv::Mat descripter,Eigen::Vector3d xyz)
-:_descripter(descripter),_localPos(xyz)
+Mappoint::Mappoint(cv::Mat descripter)
+:_descripter(descripter)
 {   
     observations = 1;
     _id = count;

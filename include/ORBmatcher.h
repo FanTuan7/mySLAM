@@ -22,10 +22,10 @@ public:
 
     ORBmatcher();
 
-    vector<float> stereo_Matching(  const Mat &img_left,
+    vector<double> stereo_Matching(  const Mat &img_left,
                                     const Mat &img_right,
                                     const vector<KeyPoint> &keypoints_left,
-                                    const float &fb
+                                    const double &fb
                                     );
 
     //暂时用来做位姿预测
@@ -37,7 +37,7 @@ public:
                                 const Mat &descriptors2);
 
     //按照匀速模型将上一帧的特征点投影到当前帧,然后根据投影位置 范围查找ORB匹配
-    vector<DMatch> projection_Matching(Frame::Ptr frame1, Frame::Ptr frame2, Sophus::SE3d motion, vector<bool> &rotation_check);
+    vector<DMatch> projection_Matching(Frame::Ptr frame1, Frame::Ptr frame2, Sophus::SE3d curr2last, Sophus::SE3d last2curr, vector<bool> &rotation_check, Camera::ConstPtr camera);
 
     void ComputeThreeMaxima(const vector<vector<int>> &Hist, int &interval1, int &interval2, int &interval3);
     
