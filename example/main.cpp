@@ -43,29 +43,17 @@ int main()
         if (frame!=nullptr )
         {  
           tracking->addFrame(frame);
-      /*   std::vector<Mappoint::Ptr>  mps = tracking->_current_frame->_map_points;
-            for(Mappoint::Ptr mp:mps)
-            {
-                double x = mp->_T_w2p[0];
-                double y = mp->_T_w2p[1];
-                double z = mp->_T_w2p[2];
 
-                if(abs(x) > 100 || abs(x)<0.01)
-                {
-                   cout <<"x  " << x << endl;
-                }
-                if(abs(y) > 100 || abs(y)<0.01)
-                {
-                    cout <<"y  " << y << endl;
-                }
-                if(abs(z) > 100 || abs(z)<2)
-                {
-                    cout <<"z  "<< z << endl;
-                }
-            }
-*/          frame->_isKF = true;
-            localMapping.run(frame);
-            //map->insertKeyFrame(tracking->_KF);
+          //  localMapping.run(frame);
+          if(frame->_isKF)
+          {
+               map->insertKeyFrame(frame);
+               for(auto mp:frame->_map_points)
+               {
+                   map->insertMapPoint(mp);
+               }
+          }
+           
             viewer->updateLocalMap();
         }
     }

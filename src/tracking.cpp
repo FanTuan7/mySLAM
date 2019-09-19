@@ -72,6 +72,7 @@ void Tracking::stereoInitialization()
 {
     cout << "stereoInitialization" << endl;
     //第一帧的位姿为原点
+    //设置成ones, 方便之后调试
     _current_frame->_T_c2w = Sophus::SE3d(Eigen::Matrix3d::Identity(), Eigen::Vector3d::Zero());
     _current_frame->_T_w2c = Sophus::SE3d(Eigen::Matrix3d::Identity(), Eigen::Vector3d::Zero());
 
