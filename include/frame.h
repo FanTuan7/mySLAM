@@ -29,6 +29,7 @@ public:
 public:
     Camera::ConstPtr _camera;
     unsigned long _id;
+    int _id_g2o;
     double _time_stamp;
     Frame();
     Frame(long id, cv::Mat left, cv::Mat right);
@@ -65,8 +66,8 @@ public:
     bool _isKF;
     DBoW3::BowVector _BoWv;
     double _bestScore;
-    Frame::Ptr _lastKF = nullptr;
-    Frame::Ptr _nextKF = nullptr;
+    Frame::Ptr _last = nullptr;
+    Frame::Ptr _next = nullptr;
     
 };
 

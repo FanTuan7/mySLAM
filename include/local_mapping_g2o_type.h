@@ -23,6 +23,7 @@
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/types/sba/types_six_dof_expmap.h>
 #include "g2o/core/robust_kernel_impl.h"
+ #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 #include <sophus/se3.hpp>
 #include <chrono>
 
@@ -38,6 +39,7 @@ class LocalMapping_g2o
     
     Map::Ptr _map;
 
+    Frame::Ptr _lastFrame;
     Frame::Ptr _currFrame;
 
     void run(Frame::Ptr frame);
